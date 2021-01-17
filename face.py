@@ -1,31 +1,60 @@
 import cv2
+import numpy as np
+import dlib
+import os
 
-print(cv2.data.haarcascades)
+os.system("mkdir face")
+os.system("mkdir mask")
 
-face_model = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+cap = cv2.VideoCapture(0)
 
-webcam = cv2.VideoCapture(0)
+detector = dlib.get_frontal_face_detector()
+predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
+
+current_frame = 0
 
 while True:
+    _, frame = cap.read()
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-	successCallback, frame = webcam.read()
+    faces = detector(gray)
+    for face in faces:
+        x1 = face.left()
+        y1 = face.top()
+        x2 = face.right()
+        y2 = face.bottom()
+        #cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 3)
 
-	if not successCallback:
-		break
+        landmarks = predictor(gray, face)
 
-	frameToGray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        mask = np.zeros_like(frame)
 
-	faces = face_model.detectMultiScale(frameToGray, scaleFactor=1.7)
-	print(faces)
+        points = []
 
-	for (x, y, w, h) in faces:
-		cv2.rectangle(frame, (x, y), (x+w, y+h), (100, 200, 50), 4)
+        for n in range(0, 68):
+            x = landmarks.part(n).x
+            y = landmarks.part(n).y
+            points.append([x, y])
+            cv2.circle(mask, (x, y), 4, (255, 255, 255), -1)
 
-	cv2.imshow("test", frame)
+        points = np.array(points)
 
-	cv2.waitKey(1)
+        face_points = np.append(points[0:16], np.flipud(points[17:26]), axis=0)
 
-#cleanup
-webcam.release()
-cv2.destroyAllWindows()
-print("squeaky clean")
+        cv2.imwrite("mask/mask" + str(current_frame) + ".png", mask)
+
+        mask = cv2.fillPoly(mask, [face_points], (255, 255, 255))
+        frame = cv2.bitwise_and(frame, mask)
+
+        cv2.imwrite("face/face" + str(current_frame) + ".png", frame)
+
+        current_frame += 1
+
+
+    cv2.imshow("Frame", frame)
+
+
+    key = cv2.waitKey(1)
+    if key == 27:
+        break
+
