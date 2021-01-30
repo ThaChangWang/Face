@@ -18,6 +18,8 @@ while True:
     _, frame = cap.read()
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
+    frame_copy = frame.copy()
+
     faces = detector(gray)
     for face in faces:
         x1 = face.left()
@@ -41,7 +43,6 @@ while True:
 
         points = np.array(points)
 
-        frame_copy = frame.copy()
 
         #face_points = np.append(points[0:16], np.flipud(points[17:26]), axis=0)
 
@@ -49,39 +50,49 @@ while True:
 
             left_eyebrow_points = points[17:22]
 
-            mask = cv2.fillPoly(frame_copy, [left_eyebrow_points], (0, 0, 0))
+            mask = cv2.fillPoly(frame, [left_eyebrow_points], (0, 0, 0))
 
-            area = 
+            frame = cv2.bitwise_xor(frame_copy, mask)
+
+            area = frame[landmarks.part(19).y:landmarks.part(17).y, landmarks.part(17).x:landmarks.part(21).x]
 
         elif (sys.argv[1] == "right_eyebrow"):
 
             right_eyebrow_points = points[22:27]
 
-            mask = cv2.fillPoly(frame_copy, [right_eyebrow_points], (0, 0, 0))
+            mask = cv2.fillPoly(frame, [right_eyebrow_points], (0, 0, 0))
 
-            area = 
+            frame = cv2.bitwise_xor(frame_copy, mask)
+
+            area = frame[landmarks.part(24).y:landmarks.part(26).y, landmarks.part(22).x:landmarks.part(26).x]
 
         elif (sys.argv[1] == "left_eye"):
 
             left_eye_points = points[36:42]
 
-            mask = cv2.fillPoly(frame_copy, [left_eye_points], (0, 0, 0))
+            mask = cv2.fillPoly(frame, [left_eye_points], (0, 0, 0))
 
-            area = 
+            frame = cv2.bitwise_xor(frame_copy, mask)
+
+            area = frame[landmarks.part(37).y:landmarks.part(41).y, landmarks.part(36).x:landmarks.part(39).x]
 
         elif (sys.argv[1] == "right_eye"):
 
             right_eye_points = points[42:48]
 
-            mask = cv2.fillPoly(frame_copy, [right_eye_points], (0, 0, 0))
+            mask = cv2.fillPoly(frame, [right_eye_points], (0, 0, 0))
 
-            area = 
+            frame = cv2.bitwise_xor(frame_copy, mask)
+
+            area = frame[landmarks.part(44).y:landmarks.part(46).y, landmarks.part(42).x:landmarks.part(45).x]
 
         elif (sys.argv[1] == "nose"):
 
             nose_points = np.array([points[27], points[31], points[33], points[35]])
 
-            mask = cv2.fillPoly(frame_copy, [nose_points], (0, 0, 0))
+            mask = cv2.fillPoly(frame, [nose_points], (0, 0, 0))
+
+            frame = cv2.bitwise_xor(frame_copy, mask)
 
             area = frame[landmarks.part(27).y:landmarks.part(33).y, landmarks.part(31).x:landmarks.part(35).x]
 
@@ -90,15 +101,15 @@ while True:
 
             mouth_points = points[48:60]
 
-            mask = cv2.fillPoly(frame_copy, [mouth_points], (0, 0, 0))
+            mask = cv2.fillPoly(frame, [mouth_points], (0, 0, 0))
 
-            area = 
+            frame = cv2.bitwise_xor(frame_copy, mask)
+
+            area = frame[min(landmarks.part(50).y, landmarks.part(52).y):max(landmarks.part(58).y, landmarks.part(56).y), landmarks.part(48).x:landmarks.part(54).x]
 
 
 
         #cv2.imwrite("mask/mask" + str(current_frame) + ".png", mask_crop)
-
-        frame = cv2.bitwise_xor(frame, mask)
 
         cv2.imwrite(sys.argv[1] + "/" + sys.argv[1] + str(current_frame) + ".png", area)
 
