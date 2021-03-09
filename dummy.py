@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import dlib
 import os
+import glob
 
 def load_images_from_folder(folder):
     images = []
@@ -18,11 +19,15 @@ left_eye_imgs = load_images_from_folder("left_eye")
 right_eye_imgs = load_images_from_folder("right_eye")
 nose_imgs = load_images_from_folder("nose")
 mouth_imgs = load_images_from_folder("mouth")
+hat_imgs = load_images_from_folder("hat")
 
-cap = cv2.VideoCapture("dummyvid.mp4")
+
+cap = cv2.VideoCapture("vid.mp4")
 
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
+
+os.system("mkdir final")
 
 current_frame = 0
 
@@ -32,9 +37,14 @@ left_eye_offset = 10
 right_eye_offset = 10
 nose_offset = 10
 mouth_offset = 10
+hat_offset = 10
+
+length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+print( length )
 
 
-while True:
+
+while current_frame < length:
     _, frame = cap.read()
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -163,19 +173,48 @@ while True:
 
             frame[(min(landmarks.part(50).y, landmarks.part(52).y) - mouth_offset):(max(landmarks.part(58).y, landmarks.part(56).y) + mouth_offset), (landmarks.part(48).x - mouth_offset):(landmarks.part(54).x + mouth_offset)] = final_mouth
 
-        
+        if (os.path.isdir("hat")):
+
+            hat_up = 50
+
+            topFrame = landmarks.part(0).y - (hat_imgs[current_frame % len(hat_imgs)].shape[0]) - hat_offset - hat_up
+
+            print(topFrame)
+
+            if topFrame < 0:
+                new_hat = hat_imgs[current_frame % len(hat_imgs)].copy()
+                new_hat = new_hat[-topFrame: new_hat.shape[0], 0: new_hat.shape[1]]
+                hat_resize = cv2.resize(new_hat, ((landmarks.part(16).x + hat_offset) - (landmarks.part(0).x - hat_offset), new_hat.shape[0] + hat_offset))
+                topFrame = 0
+
+            else:
+                hat_resize = cv2.resize(hat_imgs[current_frame % len(hat_imgs)], ((landmarks.part(16).x + hat_offset) - (landmarks.part(0).x - hat_offset), hat_imgs[current_frame % len(hat_imgs)].shape[0] + hat_offset))
 
 
+            hat_gray = cv2.cvtColor(hat_resize, cv2.COLOR_BGR2GRAY)
 
+            _, hat_mask = cv2.threshold(hat_gray, 0, 255, cv2.THRESH_BINARY)
+            hat_mask_inv = cv2.bitwise_not(hat_mask)
+
+            hat_box = frame[topFrame:landmarks.part(0).y - hat_up, landmarks.part(0).x - hat_offset:landmarks.part(16).x + hat_offset]
+
+            hat_area = cv2.bitwise_and(hat_box, hat_box, mask=hat_mask_inv)
+
+            final_hat = cv2.add(hat_area, hat_resize)
+
+            frame[topFrame:landmarks.part(0).y - hat_up, landmarks.part(0).x - hat_offset:landmarks.part(16).x + hat_offset] = final_hat
 
         cv2.imshow("frame", frame)
+        cv2.waitKey(1)
+
+        cv2.imwrite("final/" + str(current_frame) + ".jpg", frame)
 
         current_frame += 1
         print(current_frame)
 
+    
 
 
-    key = cv2.waitKey(1)
-    if key == 27:
-        break
+
+
 
